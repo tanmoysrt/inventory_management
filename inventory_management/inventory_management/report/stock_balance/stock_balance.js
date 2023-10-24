@@ -1,7 +1,6 @@
 // Copyright (c) 2023, Tanmoy Sarkar and contributors
 // For license information, please see license.txt
 
-
 function format_cell(value) {
     if (value > 0) {
         return `<span style="color:green">+${value}</span>`;
@@ -12,8 +11,8 @@ function format_cell(value) {
     }
 }
 
-frappe.query_reports["Stock Ledger"] = {
-    "filters": [
+frappe.query_reports["Stock Balance"] = {
+	"filters": [
         {
             "fieldname": "from_date",
             "label": "From Date",
@@ -35,29 +34,19 @@ frappe.query_reports["Stock Ledger"] = {
             "label": "Warehouse",
             "fieldtype": "Link",
             "options": "Warehouse",
-        },
-        {
-            "fieldname": "type",
-            "label": "Type",
-            "fieldtype": "Select",
-            "options": [
-                "Receive",
-                "Consume"
-            ]
-        },
-        {
-            "fieldname": "stock_entry",
-            "label": "Stock Entry",
-            "fieldtype": "Link",
-            "options": "Stock Entry"
         }
-    ],
+	],
     "formatter": function (value, row, column, data, default_formatter) {
         value = default_formatter(value, row, column, data);
-        if (column.fieldname === "qty_change") {
-            return format_cell(data.qty_change);
-        } else if (column.fieldname === "value_change") {
-            return format_cell(data.value_change);
+        if (column.fieldname === "in_qty") {
+            return format_cell(data.in_qty);
+        } else if (column.fieldname === "in_value") {
+            return format_cell(data.in_value);
+        } else if (column.fieldname === "out_qty") {
+            return format_cell(data.out_qty);
+        }
+        else if (column.fieldname === "out_value") {
+            return format_cell(data.out_value);
         }
         return value;
     }

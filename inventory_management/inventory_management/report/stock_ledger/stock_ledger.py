@@ -5,7 +5,7 @@ from frappe import _
 
 # import frappe
 
-columns = [
+stock_ledger_report_columns = [
     {
         'fieldname': 'posting_date',
         'label': _('Posting Date'),
@@ -135,4 +135,4 @@ def execute(filters=None):
     FROM stock_entry_with_calculations
     {generatedFilter}
     """, as_dict=True)
-    return columns, data
+    return stock_ledger_report_columns, data
