@@ -7,61 +7,62 @@ from frappe import _
 
 
 stock_balance_report_columns = [
-	{
-		'fieldname': 'item',
-		'label': _('Item'),
-		'fieldtype': 'Link',
-		'options': 'Item'
-	},
-	{
-		'fieldname': 'warehouse',
-		'label': _('Warehouse'),
-		'fieldtype': 'Link',
-		'options': 'Warehouse'
-	},
-	{
-		'fieldname': 'balance_qty',
-		'label': _('Balance Quantity'),
-		'fieldtype': 'Int',
-		'options': ''
-	},
-	{
-		'fieldname': 'balance_value',
-		'label': _('Balance Value'),
-		'fieldtype': 'Float',
-		'options': ''
-	},
-	{
-		'fieldname': 'in_qty',
-		'label': _('In Quantity'),
-		'fieldtype': 'Int',
-		'options': ''
-	},
-	{
-		'fieldname': 'in_value',
-		'label': _('In Value'),
-		'fieldtype': 'Float',
-		'options': ''
-	},
-	{
-		'fieldname': 'out_qty',
-		'label': _('Out Quantity'),
-		'fieldtype': 'Int',
-		'options': ''
-	},
-	{
-		'fieldname': 'out_value',
-		'label': _('Out Value'),
-		'fieldtype': 'Float',
-		'options': ''
-	},
-	{
-		'fieldname': 'latest_valuation_rate',
-		'label': _('Valuation Rate'),
-		'fieldtype': 'Float',
-		'options': ''
-	},
+    {
+        'fieldname': 'item',
+        'label': _('Item'),
+        'fieldtype': 'Link',
+        'options': 'Item'
+    },
+    {
+        'fieldname': 'warehouse',
+        'label': _('Warehouse'),
+        'fieldtype': 'Link',
+        'options': 'Warehouse'
+    },
+    {
+        'fieldname': 'balance_qty',
+        'label': _('Balance Quantity'),
+        'fieldtype': 'Int',
+        'options': ''
+    },
+    {
+        'fieldname': 'balance_value',
+        'label': _('Balance Value'),
+        'fieldtype': 'Float',
+        'options': ''
+    },
+    {
+        'fieldname': 'in_qty',
+        'label': _('In Quantity'),
+        'fieldtype': 'Int',
+        'options': ''
+    },
+    {
+        'fieldname': 'in_value',
+        'label': _('In Value'),
+        'fieldtype': 'Float',
+        'options': ''
+    },
+    {
+        'fieldname': 'out_qty',
+        'label': _('Out Quantity'),
+        'fieldtype': 'Int',
+        'options': ''
+    },
+    {
+        'fieldname': 'out_value',
+        'label': _('Out Value'),
+        'fieldtype': 'Float',
+        'options': ''
+    },
+    {
+        'fieldname': 'latest_valuation_rate',
+        'label': _('Valuation Rate'),
+        'fieldtype': 'Float',
+        'options': ''
+    },
 ]
+
 
 def clean_filter_query(query):
     query = query.strip()
@@ -71,26 +72,27 @@ def clean_filter_query(query):
         query = ""
     return query
 
+
 def execute(filters=None):
-	if not filters:
-		filters = {}
-	mainQueryFilter = "WHERE "
-	subQueryFilter = "AND "
-	if "item" in filters:
-		mainQueryFilter += f"item = '{filters['item']}' AND "
-	if "warehouse" in filters:
-		mainQueryFilter += f"warehouse = '{filters['warehouse']}' AND "
-	if "from_date" in filters:
-		mainQueryFilter += f"posting_date >= '{filters['from_date']}' AND "
-		subQueryFilter += f"posting_date >= '{filters['from_date']}' AND "
-	if "to_date" in filters:
-		mainQueryFilter += f"posting_date <= '{filters['to_date']}' AND "
-		subQueryFilter += f"posting_date <= '{filters['to_date']}' AND "
+    if not filters:
+        filters = {}
+    mainQueryFilter = "WHERE "
+    subQueryFilter = "AND "
+    if "item" in filters:
+        mainQueryFilter += f"item = '{filters['item']}' AND "
+    if "warehouse" in filters:
+        mainQueryFilter += f"warehouse = '{filters['warehouse']}' AND "
+    if "from_date" in filters:
+        mainQueryFilter += f"posting_date >= '{filters['from_date']}' AND "
+        subQueryFilter += f"posting_date >= '{filters['from_date']}' AND "
+    if "to_date" in filters:
+        mainQueryFilter += f"posting_date <= '{filters['to_date']}' AND "
+        subQueryFilter += f"posting_date <= '{filters['to_date']}' AND "
 
-	mainQueryFilter = clean_filter_query(mainQueryFilter)
-	subQueryFilter = clean_filter_query(subQueryFilter)
+    mainQueryFilter = clean_filter_query(mainQueryFilter)
+    subQueryFilter = clean_filter_query(subQueryFilter)
 
-	data = frappe.db.sql(f"""
+    data = frappe.db.sql(f"""
 	SELECT 
 		item,
 		warehouse,
@@ -131,5 +133,5 @@ def execute(filters=None):
 	{mainQueryFilter}
 	GROUP BY item, warehouse
 	""")
-	print(data)
-	return stock_balance_report_columns, data
+    print(data)
+    return stock_balance_report_columns, data
