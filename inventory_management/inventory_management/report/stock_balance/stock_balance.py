@@ -1,10 +1,11 @@
 # Copyright (c) 2023, Tanmoy Sarkar and contributors
 # For license information, please see license.txt
+from pypika import Case, Criterion, Order, AliasedQuery
+
 import frappe
 from frappe import _
 
-# import frappe
-
+from frappe.query_builder import functions as fn
 
 stock_balance_report_columns = [
     {
@@ -64,74 +65,50 @@ stock_balance_report_columns = [
 ]
 
 
-def clean_filter_query(query):
-    query = query.strip()
-    if query.endswith("AND"):
-        query = query[:-3]
-    if query == "WHERE":
-        query = ""
-    return query
-
-
 def execute(filters=None):
     if not filters:
         filters = {}
-    mainQueryFilter = "WHERE "
-    subQueryFilter = "AND "
+
+    main = frappe.qb.Table("tabStock Ledger Entry", alias="main")
+    sub = frappe.qb.Table("tabStock Ledger Entry", alias="sub")
+
+    main_query_filters = []
+    sub_query_filters = []
+
     if "item" in filters:
-        mainQueryFilter += f"item = '{filters['item']}' AND "
+        main_query_filters.append(main.item == filters.get("item"))
     if "warehouse" in filters:
-        mainQueryFilter += f"warehouse = '{filters['warehouse']}' AND "
+        main_query_filters.append(main.warehouse == filters.get("warehouse"))
     if "from_date" in filters:
-        mainQueryFilter += f"posting_date >= '{filters['from_date']}' AND "
-        subQueryFilter += f"posting_date >= '{filters['from_date']}' AND "
+        main_query_filters.append(main.posting_date >= filters.get("from_date"))
+        sub_query_filters.append(sub.posting_date >= filters.get("from_date"))
     if "to_date" in filters:
-        mainQueryFilter += f"posting_date <= '{filters['to_date']}' AND "
-        subQueryFilter += f"posting_date <= '{filters['to_date']}' AND "
+        main_query_filters.append(main.posting_date <= filters.get("to_date"))
+        sub_query_filters.append(sub.posting_date <= filters.get("to_date"))
 
-    mainQueryFilter = clean_filter_query(mainQueryFilter)
-    subQueryFilter = clean_filter_query(subQueryFilter)
+    sub_query = (frappe.qb.from_(sub)
+                 .select(fn.Round(sub.valuation_rate, 2))
+                 .where(sub.item == main.item)
+                 .where(sub.warehouse == main.warehouse)
+                 .where(Criterion.all(sub_query_filters))
+                 .orderby(sub.posting_date, order=Order.desc)
+                 .orderby(sub.posting_time, order=Order.desc).limit(1))
 
-    data = frappe.db.sql(f"""
-	SELECT 
-		item,
-		warehouse,
-		SUM(qty_change) AS balance_qty,
-		SUM(qty_change*in_out_rate) AS balance_value,
-		SUM(
-			CASE
-				WHEN qty_change > 0 THEN qty_change
-				ELSE 0
-				END
-		) AS in_qty,
-		SUM(
-			CASE
-				WHEN qty_change > 0 THEN qty_change*in_out_rate
-				ELSE 0
-				END
-		) AS in_value,
-		SUM(
-			CASE
-				WHEN qty_change < 0 THEN qty_change
-				ELSE 0
-				END
-		) AS out_qty,
-		SUM(
-			CASE
-				WHEN qty_change < 0 THEN qty_change*in_out_rate
-				ELSE 0
-				END
-		) AS out_value,
-		(
-			SELECT ROUND(sub.valuation_rate, 2)
-			FROM `tabStock Ledger Entry` AS sub
-			WHERE sub.item = main.item AND sub.warehouse = main.warehouse {subQueryFilter}
-			ORDER BY sub.posting_date DESC, sub.posting_time DESC
-			LIMIT 1
-		) AS latest_valuation_rate
-	FROM `tabStock Ledger Entry` AS main
-	{mainQueryFilter}
-	GROUP BY item, warehouse
-	""")
-    print(data)
-    return stock_balance_report_columns, data
+    data = (frappe.qb.from_(main).select(
+        main.item,
+        main.warehouse,
+        fn.Sum(main.qty_change).as_('balance_qty'),
+        fn.Sum(main.qty_change * main.in_out_rate).as_('balance_value'),
+        fn.Sum(Case().when(main.qty_change > 0, main.qty_change).else_(0)).as_('in_qty'),
+        fn.Sum(Case().when(main.qty_change > 0,
+                           main.qty_change * main.in_out_rate).else_(0)).as_('in_value'),
+        fn.Sum(Case().when(main.qty_change < 0, main.qty_change).else_(0)).as_('out_qty'),
+        fn.Sum(Case().when(main.qty_change < 0,
+                           main.qty_change * main.in_out_rate).else_(0)).as_('out_value'),
+        sub_query.as_('latest_valuation_rate')
+    ).where(Criterion.all(main_query_filters))
+            .groupby(main.item, main.warehouse))
+
+    print(data.get_sql())
+    result = data.run(as_dict=True)
+    return stock_balance_report_columns, result

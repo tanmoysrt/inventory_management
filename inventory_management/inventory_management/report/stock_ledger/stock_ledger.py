@@ -7,8 +7,6 @@ import frappe
 from frappe import _
 from frappe.query_builder import functions as fn
 
-# import frappe
-
 stock_ledger_report_columns = [
     {
         'fieldname': 'posting_date',
