@@ -37,6 +37,7 @@
    "wildcard_filter": 0
   },
   {
+   "default": "",
    "fieldname": "type",
    "fieldtype": "Select",
    "label": "Type",
@@ -57,7 +58,7 @@
  "is_standard": "Yes",
  "json": "{}",
  "letterhead": null,
- "modified": "2023-10-24 12:58:21.010219",
+ "modified": "2023-10-27 00:15:23.057247",
  "modified_by": "Administrator",
  "module": "Inventory Management",
  "name": "Stock Ledger",

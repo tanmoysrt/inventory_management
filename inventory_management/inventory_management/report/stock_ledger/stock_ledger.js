@@ -41,6 +41,7 @@ frappe.query_reports["Stock Ledger"] = {
             "label": "Type",
             "fieldtype": "Select",
             "options": [
+                "",
                 "Receive",
                 "Consume"
             ]

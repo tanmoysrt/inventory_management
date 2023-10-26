@@ -118,7 +118,7 @@ def execute(filters=None):
     stock_entry_with_calculations = (frappe.qb.from_(item_warehouse_subquery)
                                      .select('*',
                                              (item_warehouse_subquery.value_change + fn.Coalesce(
-                                                 an('LAG', item_warehouse_subquery.value_change, 1)
+                                                 an('LAG', item_warehouse_subquery.balance_value, 1)
                                                  .over(item_warehouse_subquery.item, item_warehouse_subquery.warehouse)
                                                  .orderby(item_warehouse_subquery.posting_date,
                                                           item_warehouse_subquery.posting_time), 0)
