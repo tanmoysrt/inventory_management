@@ -14,7 +14,8 @@ class StockEntry(Document):
 
         if frappe.utils.getdate(self.date) > frappe.utils.getdate(frappe.utils.nowdate()):
             frappe.throw("Date cannot be in future")
-        if frappe.utils.getdate(self.date) == frappe.utils.getdate(frappe.utils.nowdate()) and frappe.utils.get_time(self.time) > frappe.utils.get_time(frappe.utils.nowtime()):
+        if frappe.utils.getdate(self.date) == frappe.utils.getdate(frappe.utils.nowdate()) and frappe.utils.get_time(
+                self.time) > frappe.utils.get_time(frappe.utils.nowtime()):
             frappe.throw("Time cannot be in future")
         # check if there is any duplicate entry in items
         checked_items = set()  # <item_code>__<source_warehouse>__<target_warehouse>
@@ -59,6 +60,10 @@ class StockEntry(Document):
                 frappe.throw("Quantity must be greater than zero, Remove the item or set the quantity")
 
     def on_submit(self):
+        # Create stock ledger entries
+        self.create_stock_ledger_entries()
+
+    def create_stock_ledger_entries(self):
         valuation_method = frappe.get_doc("Stock Settings").valuation_method
         for item_transaction in self.items:
             if self.type == "Transfer":
@@ -85,7 +90,8 @@ class StockEntry(Document):
                 doc.stock_entry = self.name
                 doc.insert()
             else:
-                valuation = self._calculate_valuation_of_item(item_transaction, valuation_method, self.type == "Consume")
+                valuation = self._calculate_valuation_of_item(item_transaction, valuation_method,
+                                                              self.type == "Consume")
                 doc = frappe.new_doc("Stock Ledger Entry")
                 doc.item = item_transaction.item
                 doc.warehouse = item_transaction.target_warehouse or item_transaction.source_warehouse
@@ -98,8 +104,24 @@ class StockEntry(Document):
                 doc.insert()
 
     def on_cancel(self):
-        # 	Delete all stock ledger entries for this stock entry
-        frappe.db.delete("Stock Ledger Entry", {"stock_entry": self.name})
+        for item_transaction in self.items:
+            item_transaction.reverse_transaction()
+        # reverse type of stock entry if it's consume or receive
+        if self.type == "Consume":
+            self.type = "Receive"
+        elif self.type == "Receive":
+            self.type = "Consume"
+        # Create reverse stock ledger entries
+        self.create_stock_ledger_entries()
+        ### Roll back the changes
+        # reverse type of stock entry if it's consume or receive
+        if self.type == "Consume":
+            self.type = "Receive"
+        elif self.type == "Receive":
+            self.type = "Consume"
+        # reverse item transactions
+        for item_transaction in self.items:
+            item_transaction.reverse_transaction()
 
     # Private method
     # If received, make qty_change positive, else negative
@@ -119,7 +141,8 @@ class StockEntry(Document):
         doctype = frappe.qb.DocType("Stock Ledger Entry")
         if valuation_method == "FIFO":
             rate = (frappe.qb.from_(doctype)
-                    .select((fn.Sum(doctype.qty_change * doctype.in_out_rate)+incoming_rate * incoming_qty)/(fn.Sum(doctype.qty_change)+incoming_qty))
+                    .select((fn.Sum(doctype.qty_change * doctype.in_out_rate) + incoming_rate * incoming_qty) / (
+                    fn.Sum(doctype.qty_change) + incoming_qty))
                     .where(doctype.item == item)
                     .where(doctype.warehouse == warehouse)
                     .groupby(doctype.item, doctype.warehouse)
@@ -128,7 +151,9 @@ class StockEntry(Document):
                 valuation_rate = max(rate[0][0], 0)
         elif valuation_method == "Moving Average":
             rate = (frappe.qb.from_(doctype)
-                    .select((fn.Sum(doctype.qty_change) * fn.Avg(doctype.in_out_rate) + incoming_qty*incoming_rate) / (fn.Sum(doctype.qty_change) + incoming_qty))
+                    .select(
+                (fn.Sum(doctype.qty_change) * fn.Avg(doctype.in_out_rate) + incoming_qty * incoming_rate) / (
+                        fn.Sum(doctype.qty_change) + incoming_qty))
                     .where(doctype.item == item)
                     .where(doctype.warehouse == warehouse)
                     .groupby(doctype.item, doctype.warehouse)
