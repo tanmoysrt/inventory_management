@@ -10,4 +10,4 @@ class StockEntryTransaction(Document):
 	# This function will create a deep copy and reverse the transaction
 	def reverse_transaction(self):
 		# swap source and target warehouse
-		self.source_warehouse, self.target_warehouse = self.source_warehouse, self.target_warehouse
+		self.source_warehouse, self.target_warehouse = self.target_warehouse, self.source_warehouse

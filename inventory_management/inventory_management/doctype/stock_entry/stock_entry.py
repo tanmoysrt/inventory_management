@@ -63,7 +63,7 @@ class StockEntry(Document):
         # Create stock ledger entries
         self.create_stock_ledger_entries()
 
-    def create_stock_ledger_entries(self):
+    def create_stock_ledger_entries(self, is_cancel=False):
         valuation_method = frappe.get_doc("Stock Settings").valuation_method
         for item_transaction in self.items:
             if self.type == "Transfer":
@@ -74,8 +74,8 @@ class StockEntry(Document):
                 doc.qty_change = -item_transaction.qty
                 doc.in_out_rate = item_transaction.rate
                 doc.valuation_rate = self._calculate_valuation_of_item(item_transaction, valuation_method, True)
-                doc.posting_date = self.date
-                doc.posting_time = self.time
+                doc.posting_date = self.date if not is_cancel else frappe.utils.nowdate()
+                doc.posting_time = self.time if not is_cancel else frappe.utils.nowtime()
                 doc.stock_entry = self.name
                 doc.insert()
                 #  Insert ledger entry for target warehouse
@@ -85,8 +85,8 @@ class StockEntry(Document):
                 doc.qty_change = item_transaction.qty
                 doc.in_out_rate = item_transaction.rate
                 doc.valuation_rate = self._calculate_valuation_of_item(item_transaction, valuation_method)
-                doc.posting_date = self.date
-                doc.posting_time = self.time
+                doc.posting_date = self.date if not is_cancel else frappe.utils.nowdate()
+                doc.posting_time = self.time if not is_cancel else frappe.utils.nowtime()
                 doc.stock_entry = self.name
                 doc.insert()
             else:
@@ -98,8 +98,8 @@ class StockEntry(Document):
                 doc.qty_change = -item_transaction.qty if self.type == "Consume" else item_transaction.qty
                 doc.in_out_rate = item_transaction.rate
                 doc.valuation_rate = valuation
-                doc.posting_date = self.date
-                doc.posting_time = self.time
+                doc.posting_date = self.date if not is_cancel else frappe.utils.nowdate()
+                doc.posting_time = self.time if not is_cancel else frappe.utils.nowtime()
                 doc.stock_entry = self.name
                 doc.insert()
 
@@ -112,7 +112,7 @@ class StockEntry(Document):
         elif self.type == "Receive":
             self.type = "Consume"
         # Create reverse stock ledger entries
-        self.create_stock_ledger_entries()
+        self.create_stock_ledger_entries(is_cancel=True)
         ### Roll back the changes
         # reverse type of stock entry if it's consume or receive
         if self.type == "Consume":
@@ -126,6 +126,7 @@ class StockEntry(Document):
     # Private method
     # If received, make qty_change positive, else negative
     def _calculate_valuation_of_item(self, item_transaction, valuation_method, is_consumed=False):
+        print("calculating valuation", valuation_method, is_consumed)
         print("Stock Entry _calculate_valuation_of_item")
         item = item_transaction.item
         if is_consumed:
@@ -136,6 +137,11 @@ class StockEntry(Document):
         incoming_qty = item_transaction.qty
         if is_consumed:
             incoming_qty = -incoming_qty
+
+        print("incoming_qty", incoming_qty)
+        print("incoming_rate", incoming_rate)
+        print("warehouse", warehouse)
+        print("item", item)
 
         valuation_rate = 0
         doctype = frappe.qb.DocType("Stock Ledger Entry")
