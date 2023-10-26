@@ -10,6 +10,12 @@ import frappe
 class StockEntry(Document):
 
     def validate(self):
+        # check if date and time is not in future
+
+        if frappe.utils.getdate(self.date) > frappe.utils.getdate(frappe.utils.nowdate()):
+            frappe.throw("Date cannot be in future")
+        if frappe.utils.getdate(self.date) == frappe.utils.getdate(frappe.utils.nowdate()) and frappe.utils.get_time(self.time) > frappe.utils.get_time(frappe.utils.nowtime()):
+            frappe.throw("Time cannot be in future")
         # check if there is any duplicate entry in items
         checked_items = set()  # <item_code>__<source_warehouse>__<target_warehouse>
         for item_transaction in self.items:
@@ -53,6 +59,7 @@ class StockEntry(Document):
                 frappe.throw("Quantity must be greater than zero, Remove the item or set the quantity")
 
     def on_submit(self):
+        valuation_method = frappe.get_doc("Stock Settings").valuation_method
         for item_transaction in self.items:
             if self.type == "Transfer":
                 # Insert ledger entry for source warehouse
@@ -61,7 +68,7 @@ class StockEntry(Document):
                 doc.warehouse = item_transaction.source_warehouse
                 doc.qty_change = -item_transaction.qty
                 doc.in_out_rate = item_transaction.rate
-                doc.valuation_rate = self._calculate_valuation_of_item(item_transaction, self.valuation_method, True)
+                doc.valuation_rate = self._calculate_valuation_of_item(item_transaction, valuation_method, True)
                 doc.posting_date = self.date
                 doc.posting_time = self.time
                 doc.stock_entry = self.name
@@ -72,14 +79,13 @@ class StockEntry(Document):
                 doc.warehouse = item_transaction.target_warehouse
                 doc.qty_change = item_transaction.qty
                 doc.in_out_rate = item_transaction.rate
-                doc.valuation_rate = self._calculate_valuation_of_item(item_transaction, self.valuation_method)
+                doc.valuation_rate = self._calculate_valuation_of_item(item_transaction, valuation_method)
                 doc.posting_date = self.date
                 doc.posting_time = self.time
                 doc.stock_entry = self.name
                 doc.insert()
             else:
-                valuation = self._calculate_valuation_of_item(item_transaction, self.valuation_method,
-                                                              self.type == "Consume")
+                valuation = self._calculate_valuation_of_item(item_transaction, valuation_method, self.type == "Consume")
                 doc = frappe.new_doc("Stock Ledger Entry")
                 doc.item = item_transaction.item
                 doc.warehouse = item_transaction.target_warehouse or item_transaction.source_warehouse
@@ -90,7 +96,6 @@ class StockEntry(Document):
                 doc.posting_time = self.time
                 doc.stock_entry = self.name
                 doc.insert()
-        frappe.throw("Stock Entry failed to submit")
 
     def on_cancel(self):
         # 	Delete all stock ledger entries for this stock entry

@@ -62,7 +62,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-10-23 13:24:45.125281",
+ "modified": "2023-10-26 17:31:34.053955",
  "modified_by": "Administrator",
  "module": "Inventory Management",
  "name": "Item",
@@ -82,7 +82,10 @@
    "write": 1
   }
  ],
+ "search_fields": "name1",
+ "show_title_field_in_link": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "title_field": "name1"
 }

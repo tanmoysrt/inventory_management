@@ -11,11 +11,12 @@
   "name1",
   "contact_no",
   "location",
+  "column_break_ihte",
   "lft",
   "rgt",
-  "is_group",
   "old_parent",
-  "parent_warehouse"
+  "parent_warehouse",
+  "is_group"
  ],
  "fields": [
   {
@@ -69,12 +70,16 @@
    "ignore_user_permissions": 1,
    "label": "Parent Warehouse",
    "options": "Warehouse"
+  },
+  {
+   "fieldname": "column_break_ihte",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_tree": 1,
  "links": [],
- "modified": "2023-10-19 13:28:02.054575",
+ "modified": "2023-10-26 20:13:00.721963",
  "modified_by": "Administrator",
  "module": "Inventory Management",
  "name": "Warehouse",
@@ -95,7 +100,10 @@
    "write": 1
   }
  ],
+ "search_fields": "name1",
+ "show_title_field_in_link": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "title_field": "name1"
 }

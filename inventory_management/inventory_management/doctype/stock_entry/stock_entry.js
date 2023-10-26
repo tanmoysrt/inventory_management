@@ -2,18 +2,38 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on('Stock Entry', {
-    refresh: (frm) => update_on_change_type(frm),
+    onload: (frm) => {
+        if (frm.doc.docstatus === 0) {
+            set_default_date_time(frm);
+        }
+    },
+    refresh: (frm) => {
+        update_on_change_type(frm);
+        if(frm.doc.docstatus === 1 || frm.doc.docstatus === 2){
+            frm.add_custom_button("Stock Ledger Report", function(){
+                frappe.set_route("query-report", "Stock Ledger", {"stock_entry": frm.doc.name});
+            });
+        }
+    },
     type: (frm, cdt, cdn) => update_on_change_type(frm),
 });
 
 frappe.ui.form.on('Stock Entry Transaction', {
-    // items_add: function (frm, cdt, cdn) {
-    //
-    // },
     item: (frm, cdt, cdn) => fetch_item_rate(cdt, cdn),
     target_warehouse: (frm, cdt, cdn) => fetch_item_rate(cdt, cdn),
     source_warehouse: (frm, cdt, cdn) => fetch_item_rate(cdt, cdn),
 });
+
+function set_default_date_time(frm){
+    // check if date is not set
+    if(!frm.doc.date){
+        frm.set_value("date", frappe.datetime.now_date());
+    }
+    // check if time is not set
+    if(!frm.doc.time){
+        frm.set_value("time", frappe.datetime.now_time());
+    }
+}
 
 function update_on_change_type(frm){
     if(frm.doc.type === 'Receive') {
@@ -52,7 +72,6 @@ function fetch_item_rate(cdt, cdn){
     if(item_code && type === "Transfer" && target_warehouse && source_warehouse){
         fetch_item_rate_helper(item_code, source_warehouse, cdt, cdn)
     }
-    // TODO: implement for transfer
 }
 
 async function fetch_item_rate_helper(item_code, warehouse, cdt, cdn){
@@ -60,8 +79,7 @@ async function fetch_item_rate_helper(item_code, warehouse, cdt, cdn){
         method: "inventory_management.helpers.fetch_rate_of_item",
         args: {
             item_code: item_code,
-            warehouse_id: warehouse,
-            type: cur_frm.fields_dict.valuation_method.value
+            warehouse_id: warehouse
         },
         callback: function (r) {
             frappe.get_doc(cdt, cdn).rate = r.message

@@ -12,7 +12,6 @@
   "time",
   "column_break_iace",
   "type",
-  "valuation_method",
   "section_break_wyhj",
   "amended_from",
   "items"
@@ -38,14 +37,6 @@
    "in_list_view": 1,
    "label": "Type",
    "options": "Receive\nConsume\nTransfer",
-   "reqd": 1
-  },
-  {
-   "fieldname": "valuation_method",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Valuation Method",
-   "options": "FIFO\nMoving Average",
    "reqd": 1
   },
   {
@@ -75,7 +66,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-10-19 17:40:11.247203",
+ "modified": "2023-10-26 20:44:48.996304",
  "modified_by": "Administrator",
  "module": "Inventory Management",
  "name": "Stock Entry",
