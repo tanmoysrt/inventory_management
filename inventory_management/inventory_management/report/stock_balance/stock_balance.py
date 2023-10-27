@@ -109,6 +109,5 @@ def execute(filters=None):
     ).where(Criterion.all(main_query_filters))
             .groupby(main.item, main.warehouse))
 
-    print(data.get_sql())
     result = data.run(as_dict=True)
     return stock_balance_report_columns, result
