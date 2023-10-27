@@ -233,8 +233,10 @@ class TestStockEntry(FrappeTestCase):
 																	 order_by="posting_date desc, posting_time desc")
 
 		# Check if the stock ledger entry has been reversed
-		self._check_ledger_entry_reversal(ledger_entry_on_submit_type_receive_id, ledger_entry_on_cancel_type_consume_id)
-		self._check_ledger_entry_reversal(ledger_entry_on_submit_type_consume_id, ledger_entry_on_cancel_type_receive_id)
+		self._check_ledger_entry_reversal(ledger_entry_on_submit_type_receive_id,
+										  ledger_entry_on_cancel_type_consume_id)
+		self._check_ledger_entry_reversal(ledger_entry_on_submit_type_consume_id,
+										  ledger_entry_on_cancel_type_receive_id)
 
 	def test_valuation_method_fifo(self):
 		# switch to FIFO
