@@ -12,7 +12,7 @@ from inventory_management.inventory_management.report.stock_ledger.stock_ledger 
 
 
 class TestStockLedgerEntry(FrappeTestCase):
-	def test_stock_ledger(self):
+	def test_stock_ledger_report(self):
 		# switch to FIFO
 		update_valuation_method("FIFO")
 
