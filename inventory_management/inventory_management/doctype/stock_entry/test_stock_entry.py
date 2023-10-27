@@ -1,6 +1,7 @@
 # Copyright (c) 2023, Tanmoy Sarkar and Contributors
 # See license.txt
 import datetime
+import math
 from datetime import timedelta
 
 import frappe
@@ -236,10 +237,30 @@ class TestStockEntry(FrappeTestCase):
 		self._check_ledger_entry_reversal(ledger_entry_on_submit_type_consume_id, ledger_entry_on_cancel_type_receive_id)
 
 	def test_valuation_method_fifo(self):
-		pass
+		# switch to FIFO
+		update_valuation_method("FIFO")
+		# create a item
+		item = create_item("Test Item", self.warehouse.name, 5, 500)
+		# create a stock entry
+		new_stock_entry("Consume", item.name, 2, self.warehouse.name, "", 500).save().submit()
+		new_stock_entry("Receive", item.name, 2, "", self.warehouse.name, 1000).save().submit()
+
+		# Get valuation rate
+		valuation = calculate_valuation(item.name, self.warehouse.name)
+		self.assertEquals(valuation, 700, "Check if valuation rate is correct")
 
 	def test_valuation_method_moving_average(self):
-		pass
+		# switch to `Moving Average`
+		update_valuation_method("Moving Average")
+		# create a item
+		item = create_item("Test Item", self.warehouse.name, 5, 500)
+		# create a stock entry
+		new_stock_entry("Consume", item.name, 2, self.warehouse.name, "", 500).save().submit()
+		new_stock_entry("Receive", item.name, 2, "", self.warehouse.name, 1000).save().submit()
+
+		# Get valuation rate
+		valuation = calculate_valuation(item.name, self.warehouse.name)
+		self.assertEquals(math.ceil(valuation), 667, "Check if valuation rate is correct")
 
 	def _check_ledger_entry_reversal(self, ledger_entry_on_submit_id: str, ledger_entry_on_cancel_id: str):
 		ledger_entry_on_submit = frappe.get_doc("Stock Ledger Entry", ledger_entry_on_submit_id)
