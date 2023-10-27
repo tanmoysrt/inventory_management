@@ -126,7 +126,6 @@ class StockEntry(Document):
     # Private method
     # If received, make qty_change positive, else negative
     def _calculate_valuation_of_item(self, item_transaction, valuation_method, is_consumed=False):
-        print("Stock Entry _calculate_valuation_of_item")
         item = item_transaction.item
         if is_consumed:
             warehouse = item_transaction.source_warehouse
