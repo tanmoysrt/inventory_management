@@ -24,7 +24,10 @@ class TestItem(FrappeTestCase):
         self.assertTrue(frappe.db.exists("Item", item.name), "Check if the item has been created")
 
         # Check if the stock ledger entry has been created
-        ledger_entry_id = frappe.db.get_value("Stock Ledger Entry", {"item": item.name, "warehouse": self.warehouse.name })
+        ledger_entry_id = frappe.db.get_value("Stock Ledger Entry",
+                                              {"item": item.name, "warehouse": self.warehouse.name},
+                                              order_by="posting_date desc, posting_time desc"
+                                              )
         self.assertTrue(ledger_entry_id, "Check if the stock ledger entry has been created")
 
         ledger_entry = frappe.get_doc("Stock Ledger Entry", ledger_entry_id)
