@@ -5,6 +5,14 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 from inventory_management.inventory_management.doctype.warehouse.test_warehouse import create_warehouse
 
+def create_item(item_name, warehouse_name, qty, rate):
+    item = frappe.new_doc("Item")
+    item.name1 = item_name
+    item.opening_warehouse = warehouse_name
+    item.opening_qty = qty
+    item.opening_valuation_rate = rate
+    item.save()
+    return item
 
 class TestItem(FrappeTestCase):
     def setUp(self):
@@ -13,12 +21,7 @@ class TestItem(FrappeTestCase):
 
     def test_create_item(self):
         # Create a new item
-        item = frappe.new_doc("Item")
-        item.name1 = "Test Item"
-        item.opening_warehouse = self.warehouse.name
-        item.opening_qty = 10
-        item.opening_valuation_rate = 100
-        item.save()
+        item = create_item("Test Item", self.warehouse.name, 10, 100)
 
         # Check if the item has been created
         self.assertTrue(frappe.db.exists("Item", item.name), "Check if the item has been created")

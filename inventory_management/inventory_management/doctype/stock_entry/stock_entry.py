@@ -73,7 +73,7 @@ class StockEntry(Document):
                 doc.warehouse = item_transaction.source_warehouse
                 doc.qty_change = -item_transaction.qty
                 doc.in_out_rate = item_transaction.rate
-                doc.valuation_rate = self._calculate_valuation_of_item(item_transaction, valuation_method, True)
+                doc.valuation_rate = self._calculate_valuation_of_item(item_transaction, True)
                 doc.posting_date = self.date if not is_cancel else frappe.utils.nowdate()
                 doc.posting_time = self.time if not is_cancel else frappe.utils.nowtime()
                 doc.stock_entry = self.name
@@ -84,14 +84,13 @@ class StockEntry(Document):
                 doc.warehouse = item_transaction.target_warehouse
                 doc.qty_change = item_transaction.qty
                 doc.in_out_rate = item_transaction.rate
-                doc.valuation_rate = self._calculate_valuation_of_item(item_transaction, valuation_method)
+                doc.valuation_rate = self._calculate_valuation_of_item(item_transaction)
                 doc.posting_date = self.date if not is_cancel else frappe.utils.nowdate()
                 doc.posting_time = self.time if not is_cancel else frappe.utils.nowtime()
                 doc.stock_entry = self.name
                 doc.insert()
             else:
-                valuation = self._calculate_valuation_of_item(item_transaction, valuation_method,
-                                                              self.type == "Consume")
+                valuation = self._calculate_valuation_of_item(item_transaction, self.type == "Consume")
                 doc = frappe.new_doc("Stock Ledger Entry")
                 doc.item = item_transaction.item
                 doc.warehouse = item_transaction.target_warehouse or item_transaction.source_warehouse
@@ -125,7 +124,7 @@ class StockEntry(Document):
 
     # Private method
     # If received, make qty_change positive, else negative
-    def _calculate_valuation_of_item(self, item_transaction, valuation_method, is_consumed=False):
+    def _calculate_valuation_of_item(self, item_transaction, is_consumed=False):
         item = item_transaction.item
         if is_consumed:
             warehouse = item_transaction.source_warehouse
@@ -136,30 +135,35 @@ class StockEntry(Document):
         if is_consumed:
             incoming_qty = -incoming_qty
 
-        valuation_rate = 0
-        doctype = frappe.qb.DocType("Stock Ledger Entry")
-        if valuation_method == "FIFO":
-            rate = (frappe.qb.from_(doctype)
-                    .select((fn.Sum(doctype.qty_change * doctype.in_out_rate) + incoming_rate * incoming_qty) / (
-                    fn.Sum(doctype.qty_change) + incoming_qty))
-                    .where(doctype.item == item)
-                    .where(doctype.warehouse == warehouse)
-                    .groupby(doctype.item, doctype.warehouse)
-                    .run(as_list=True))
-            if len(rate) > 0 and len(rate[0]) > 0:
-                valuation_rate = max(rate[0][0], 0)
-        elif valuation_method == "Moving Average":
-            rate = (frappe.qb.from_(doctype)
-                    .select(
-                (fn.Sum(doctype.qty_change) * fn.Avg(doctype.in_out_rate) + incoming_qty * incoming_rate) / (
-                        fn.Sum(doctype.qty_change) + incoming_qty))
-                    .where(doctype.item == item)
-                    .where(doctype.warehouse == warehouse)
-                    .groupby(doctype.item, doctype.warehouse)
-                    .run(as_list=True))
-            if len(rate) > 0 and len(rate[0]) > 0:
-                valuation_rate = rate[0][0]
+        return calculate_valuation(item, warehouse, incoming_qty, incoming_rate, is_consumed)
 
-        if valuation_rate == 0:
-            valuation_rate = 0 if is_consumed else incoming_rate
-        return valuation_rate
+
+def calculate_valuation(item: str, warehouse: str, incoming_qty: int = 0, incoming_rate: int = 0, is_consumed: bool = False):
+    valuation_rate = 0
+    valuation_method = frappe.get_doc("Stock Settings").valuation_method
+    doctype = frappe.qb.DocType("Stock Ledger Entry")
+    if valuation_method == "FIFO":
+        rate = (frappe.qb.from_(doctype)
+                .select((fn.Sum(doctype.qty_change * doctype.in_out_rate) + incoming_rate * incoming_qty) / (
+                fn.Sum(doctype.qty_change) + incoming_qty))
+                .where(doctype.item == item)
+                .where(doctype.warehouse == warehouse)
+                .groupby(doctype.item, doctype.warehouse)
+                .run(as_list=True))
+        if len(rate) > 0 and len(rate[0]) > 0:
+            valuation_rate = max(rate[0][0], 0)
+    elif valuation_method == "Moving Average":
+        rate = (frappe.qb.from_(doctype)
+                .select(
+            (fn.Sum(doctype.qty_change) * fn.Avg(doctype.in_out_rate) + incoming_qty * incoming_rate) / (
+                    fn.Sum(doctype.qty_change) + incoming_qty))
+                .where(doctype.item == item)
+                .where(doctype.warehouse == warehouse)
+                .groupby(doctype.item, doctype.warehouse)
+                .run(as_list=True))
+        if len(rate) > 0 and len(rate[0]) > 0:
+            valuation_rate = rate[0][0]
+
+    if valuation_rate == 0:
+        valuation_rate = 0 if is_consumed else incoming_rate
+    return valuation_rate
