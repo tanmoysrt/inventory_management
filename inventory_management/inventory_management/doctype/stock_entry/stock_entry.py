@@ -150,7 +150,7 @@ def calculate_valuation(item: str, warehouse: str, incoming_qty: int = 0, incomi
                 .where(doctype.warehouse == warehouse)
                 .groupby(doctype.item, doctype.warehouse)
                 .run(as_list=True))
-        if len(rate) > 0 and len(rate[0]) > 0:
+        if len(rate) > 0 and len(rate[0]) > 0 and rate[0][0] is not None:
             valuation_rate = max(rate[0][0], 0)
     elif valuation_method == "Moving Average":
         rate = (frappe.qb.from_(doctype)
@@ -161,7 +161,7 @@ def calculate_valuation(item: str, warehouse: str, incoming_qty: int = 0, incomi
                 .where(doctype.warehouse == warehouse)
                 .groupby(doctype.item, doctype.warehouse)
                 .run(as_list=True))
-        if len(rate) > 0 and len(rate[0]) > 0:
+        if len(rate) > 0 and len(rate[0]) > 0 and rate[0][0] is not None:
             valuation_rate = rate[0][0]
 
     if valuation_rate == 0:
